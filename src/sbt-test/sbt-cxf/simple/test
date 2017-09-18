@@ -1,2 +1,2 @@
 > cxfWsdl2java
-$ exists target/scala-2.10/src_managed/cxf/hello-world/main/org/apache/hello_world_soap_http/Greeter.java
+$ exists target/scala-2.12/src_managed/cxf/hello-world/main/org/apache/hello_world_soap_http/Greeter.java
