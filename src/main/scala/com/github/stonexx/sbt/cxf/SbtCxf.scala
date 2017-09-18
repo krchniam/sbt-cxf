@@ -12,7 +12,7 @@ import scala.util.Try
 
 object Import {
 
-  val cxf = config("cxf")
+  val Cxf = config("cxf")
 
   object CxfKeys {
 
@@ -38,25 +38,25 @@ object SbtCxf extends AutoPlugin {
   import CxfKeys._
 
   override def projectSettings: Seq[Setting[_]] = Seq(
-    ivyConfigurations += cxf,
-    version in cxf := "3.1.7",
+    ivyConfigurations += Cxf,
+    version in Cxf := "3.1.7",
     libraryDependencies ++= {
-      val cxfVersion = (version in cxf).value
+      val cxfVersion = (version in Cxf).value
       Seq(
-      "org.apache.cxf" % "cxf-tools-wsdlto-core" % cxfVersion % cxf,
-      "org.apache.cxf" % "cxf-tools-wsdlto-databinding-jaxb" % cxfVersion % cxf,
-      "org.apache.cxf" % "cxf-tools-wsdlto-frontend-jaxws" % cxfVersion % cxf
+      "org.apache.cxf" % "cxf-tools-wsdlto-core" % cxfVersion % Cxf,
+      "org.apache.cxf" % "cxf-tools-wsdlto-databinding-jaxb" % cxfVersion % Cxf,
+      "org.apache.cxf" % "cxf-tools-wsdlto-frontend-jaxws" % cxfVersion % Cxf
       )
     },
     wsdls := Nil,
-    managedClasspath in cxf := Classpaths.managedJars(cxf, (classpathTypes in cxf).value, update.value),
-    sourceManaged in cxf := sourceManaged(_ / "cxf").value,
-    managedSourceDirectories in Compile ++= wsdls.value.map(_.outputDirectory((sourceManaged in cxf).value) / "main"),
-    clean in cxf := IO.delete((sourceManaged in cxf).value),
+    managedClasspath in Cxf := Classpaths.managedJars(Cxf, (classpathTypes in Cxf).value, update.value),
+    sourceManaged in Cxf := sourceManaged(_ / "cxf").value,
+    managedSourceDirectories in Compile ++= wsdls.value.map(_.outputDirectory((sourceManaged in Cxf).value) / "main"),
+    clean in Cxf := IO.delete((sourceManaged in Cxf).value),
     wsdl2java := {
-      val classpath = (managedClasspath in cxf).value.files
+      val classpath = (managedClasspath in Cxf).value.files
       (for (wsdl <- wsdls.value) yield {
-        val output = wsdl.outputDirectory((sourceManaged in cxf).value)
+        val output = wsdl.outputDirectory((sourceManaged in Cxf).value)
         val mainOutput = output / "main"
         val cacheOutput = output / "cache"
 
