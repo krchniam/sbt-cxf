@@ -5,7 +5,8 @@ import java.net.MalformedURLException
 
 import sbt.Keys._
 import sbt._
-import sbt.classpath.ClasspathUtilities
+import sbt.internal.inc.classpath.ClasspathUtilities
+import sbt.io.Using
 
 import scala.util.Try
 
@@ -61,7 +62,10 @@ object SbtCxf extends AutoPlugin {
 
         val wsdlFile = Try(url(wsdl.uri)).map(wsdlUrl => IO.urlAsFile(wsdlUrl).getOrElse {
           val wsdlFile = cacheOutput / "wsdl"
-          if (!wsdlFile.exists) IO.download(wsdlUrl, wsdlFile)
+          if (!wsdlFile.exists) Using.urlInputStream(wsdlUrl) { in =>
+            IO.transfer(in, wsdlFile)
+            in.close()
+          }
           wsdlFile
         }).recover {
           case _: MalformedURLException => file(wsdl.uri)
