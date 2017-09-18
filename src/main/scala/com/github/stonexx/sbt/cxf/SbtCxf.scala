@@ -21,7 +21,7 @@ object Import {
   }
 
   case class Wsdl(key: String, uri: String, args: Seq[String] = Nil) {
-    def outputDirectory(basedir: File) = new File(basedir, key).getAbsoluteFile
+    def outputDirectory(basedir: File): File = new File(basedir, key).getAbsoluteFile
   }
 
 }
@@ -39,24 +39,23 @@ object SbtCxf extends AutoPlugin {
   override def projectSettings: Seq[Setting[_]] = Seq(
     ivyConfigurations += cxf,
     version in cxf := "3.1.7",
-    libraryDependencies <++= (version in cxf)(version => Seq(
-      "org.apache.cxf" % "cxf-tools-wsdlto-core" % version % cxf,
-      "org.apache.cxf" % "cxf-tools-wsdlto-databinding-jaxb" % version % cxf,
-      "org.apache.cxf" % "cxf-tools-wsdlto-frontend-jaxws" % version % cxf
-    )),
+    libraryDependencies ++= {
+      val cxfVersion = (version in cxf).value
+      Seq(
+      "org.apache.cxf" % "cxf-tools-wsdlto-core" % cxfVersion % cxf,
+      "org.apache.cxf" % "cxf-tools-wsdlto-databinding-jaxb" % cxfVersion % cxf,
+      "org.apache.cxf" % "cxf-tools-wsdlto-frontend-jaxws" % cxfVersion % cxf
+      )
+    },
     wsdls := Nil,
-    managedClasspath in cxf <<= (classpathTypes in cxf, update) map { (ct, report) =>
-      Classpaths.managedJars(cxf, ct, report)
-    },
-    sourceManaged in cxf <<= sourceManaged(_ / "cxf"),
-    managedSourceDirectories in Compile <++= (wsdls, sourceManaged in cxf) { (wsdls, basedir) =>
-      wsdls.map(_.outputDirectory(basedir) / "main")
-    },
+    managedClasspath in cxf := Classpaths.managedJars(cxf, (classpathTypes in cxf).value, update.value),
+    sourceManaged in cxf := sourceManaged(_ / "cxf").value,
+    managedSourceDirectories in Compile ++= wsdls.value.map(_.outputDirectory((sourceManaged in cxf).value) / "main"),
     clean in cxf := IO.delete((sourceManaged in cxf).value),
-    wsdl2java <<= (streams, wsdls, sourceManaged in cxf, managedClasspath in cxf).map { (streams, wsdls, basedir, cp) =>
-      val classpath = cp.files
-      (for (wsdl <- wsdls) yield {
-        val output = wsdl.outputDirectory(basedir)
+    wsdl2java := {
+      val classpath = (managedClasspath in cxf).value.files
+      (for (wsdl <- wsdls.value) yield {
+        val output = wsdl.outputDirectory((sourceManaged in cxf).value)
         val mainOutput = output / "main"
         val cacheOutput = output / "cache"
 
@@ -65,18 +64,18 @@ object SbtCxf extends AutoPlugin {
           if (!wsdlFile.exists) IO.download(wsdlUrl, wsdlFile)
           wsdlFile
         }).recover {
-          case e: MalformedURLException => file(wsdl.uri)
+          case _: MalformedURLException => file(wsdl.uri)
         }.get
 
         val cachedFn = FileFunction.cached(cacheOutput, FilesInfo.lastModified, FilesInfo.exists) { _ =>
           val args = Seq("-d", mainOutput.getAbsolutePath) ++ wsdl.args :+ wsdl.uri
-          callWsdl2java(streams, wsdl.key, mainOutput, args, classpath)
+          callWsdl2java(streams.value, wsdl.key, mainOutput, args, classpath)
           (mainOutput ** "*.java").get.toSet
         }
         cachedFn(Set(wsdlFile))
       }).flatten
     },
-    sourceGenerators in Compile <+= wsdl2java
+    sourceGenerators in Compile += wsdl2java.taskValue
   )
 
   private def callWsdl2java(streams: TaskStreams, id: String, output: File, args: Seq[String], classpath: Seq[File]) {
